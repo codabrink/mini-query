@@ -16,6 +16,12 @@ For all fields marked with #[mini_query(get_by)]:
 
 - `MyStruct::get_by_{x}(client: &impl GenericClient, val: &T) -> Result<Vec<T>>`
 
+And of course, support for inserting and updating.
+
+- `MyStruct::quick_insert(&self, client: &impl GenericClient) -> Result<Self>`
+- `MyStruct::quick_insert_no_return(&self, client: &impl GenericClient) -> Result<()>`
+- `MyStruct::quick_update(&self, client: &impl GenericClient) -> Result<Self>`
+
 This macro also implements the From\<Row> trait for your struct. Making this possible:
 
 ```rust
@@ -28,7 +34,7 @@ This macro also implements the From\<Row> trait for your struct. Making this pos
 - [SeaQuery](https://github.com/SeaQL/sea-query) feels like too much of an overkill for your project where you're willing to write some sql.
 - Do you want a simpler way to put your structs into your database and pull them back out again?
 
-### Here's An Example For a "users" Table
+### Here's an example for a "users" table
 
 ```rust
 use mini_query::MiniQuery;
