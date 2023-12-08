@@ -1,5 +1,7 @@
 # Mini Query
 
+[![Latest Version](https://img.shields.io/crates/v/mini-query.svg)](https://crates.io/crates/mini-query)
+
 A mini query derive macro to generate helper methods to quickly insert / retrieve records.
 
 ### Generates the following functions on the struct:
