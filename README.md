@@ -2,7 +2,7 @@
 
 [![Latest Version](https://img.shields.io/crates/v/mini-query.svg)](https://crates.io/crates/mini-query)
 
-A mini query derive macro to generate helper methods to quickly insert / retrieve records.
+A mini ORM to quickly find / insert / retrieve records with tokio-postgres.
 
 ## Generates the following functions on the struct:
 
@@ -93,7 +93,7 @@ async fn main() -> Result<()> {
   };
   user.encrypt_password();
 
-  // fn is prefixed with "quick_" to avoid naming collisions, in case you wish to write your own.
+  // fn is prefixed with "quick_" to avoid naming collisions, in case you wish to write a validation wrapper.
   user.quick_insert(&client).await?;
 
   // find user by email

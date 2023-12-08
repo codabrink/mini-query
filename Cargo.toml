@@ -1,8 +1,8 @@
 [package]
 name = "mini-query"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
-description = "A mini ORM derive macro for tokio-postgres."
+description = "A mini ORM to quickly find / insert / retrieve records with tokio-postgres."
 repository = "https://github.com/codabrink/mini-query"
 license = "MPL-2.0"
 keywords = ["database", "orm", "async", "sql", "postgres"]
