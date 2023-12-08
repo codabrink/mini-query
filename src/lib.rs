@@ -143,7 +143,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
           Ok(recs)
         }
 
-        pub async fn mini_insert(&self, client: &impl GenericClient) -> anyhow::Result<Self> {
+        pub async fn quick_insert(&self, client: &impl GenericClient) -> anyhow::Result<Self> {
           let rec = client.query_one(
             #insert_query_returning,
             &[#(&(self.#field_tokens)),*]
@@ -152,7 +152,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
           Ok(Self::from(rec))
         }
 
-        pub async fn mini_insert_no_return(&self, client: &impl GenericClient) -> anyhow::Result<()> {
+        pub async fn quick_insert_no_return(&self, client: &impl GenericClient) -> anyhow::Result<()> {
           client
             .query(
               #insert_query,
@@ -184,7 +184,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
           Ok(rec)
         }
 
-        pub async fn mini_update(&self, client: &impl GenericClient) -> anyhow::Result<Self> {
+        pub async fn quick_update(&self, client: &impl GenericClient) -> anyhow::Result<Self> {
           let rec = client.query_one(#update_query, &[&self.#ident, #(&(self.#field_tokens)),*]).await?;
 
           Ok(Self::from(rec))

@@ -1,11 +1,34 @@
 # Mini Query
 
-- Concerned about sqlx's [poor performance](https://github.com/diesel-rs/metrics/)?
-- Not ready to leap into the depths of [SeaQuery](https://github.com/SeaQL/sea-query) just yet?
-  - Or maybe it feels just a touch overkill for someone who is comfortable writing SQL?
+A mini query derive macro to generate helper methods to quickly insert / retrieve records.
+
+### Generates the following functions on the struct:
+
+If #[mini_query(primary_key)] is set:
+
+- `MyStruct::get(id: &T) -> Result<Option<T>>`
+
+For all fields marked with #[mini_query(find_by)]:
+
+- `MyStruct::find_by_{x}(client: &impl GenericClient, val: &T) -> Result<Option<T>>`
+
+For all fields marked with #[mini_query(get_by)]:
+
+- `MyStruct::get_by_{x}(client: &impl GenericClient, val: &T) -> Result<Vec<T>>`
+
+This macro also implements the From\<Row> trait for your struct. Making this possible:
+
+```rust
+  let user: User = client.query_one("SELECT * FROM users WHERE id = $1", &[&1]).await?.into();
+```
+
+### Who is this for?
+
+- If you're concerned about sqlx's [performance](https://github.com/diesel-rs/metrics/), or are not really a fan of their syntax.
+- [SeaQuery](https://github.com/SeaQL/sea-query) feels like too much of an overkill for your project where you're willing to write some sql.
 - Do you want a simpler way to put your structs into your database and pull them back out again?
 
-### Here's what it looks like
+### Here's An Example For a "users" Table
 
 ```rust
 use mini_query::MiniQuery;
@@ -21,10 +44,12 @@ struct User {
   pub email: String,
   #[mini_query(skip)]
   pub raw_password: Option<String>,
-  #[mini_query(rename = "password")]
+  #[mini_query(rename = "password")] // renames field to "password" when saving
   enc_password: String,
   #[mini_query(cast = i16, get_by)] // this column is represented by a smallint in postgres
-  role: UserRole
+  pub role: UserRole
+  pub created_at: DateTime<Utc>,
+  pub updated_at: DateTime<Utc>,
 }
 impl User {
   fn encrypt_password(&mut self) {
@@ -55,7 +80,7 @@ impl From<i16> for UserRole {
 #[tokio::main]
 async fn main() -> Result<()> {
   let (client, connection) =
-    tokio_postgres::connect("host=localhost user=postgres", NoTls).await?;
+    tokio_postgres::connect("postgresql://postgres@localhost/mydb-dev", NoTls).await?;
   tokio::spawn(async move { connection.await });
 
   let mut user = User {
@@ -66,10 +91,10 @@ async fn main() -> Result<()> {
   };
   user.encrypt_password();
 
-  // fn is prefixed with "mini_" to avoid naming collisions, in case you wish to write your own.
-  user.mini_insert(&client).await?;
+  // fn is prefixed with "quick_" to avoid naming collisions, in case you wish to write your own.
+  user.quick_insert(&client).await?;
 
-  // look up user by email
+  // find user by email
   let same_user = User::find_by_email(&client, "foo@dog.com")?;
   assert_eq!(user.email, same_user.email);
 
@@ -80,7 +105,7 @@ async fn main() -> Result<()> {
   // get user by id and update
   let mut user = User::get(&client, &same_user.id);
   user.email = "bar@dog.com".to_owned();
-  user.mini_update(&client).await?;
+  user.quick_update(&client).await?;
 
   // assert it saved
   assert_eq!(&User::get(&client, &user.id).email, "bar@dog.com");
@@ -90,4 +115,4 @@ async fn main() -> Result<()> {
 
 ```
 
-Only supports [tokio-postgres](https://docs.rs/tokio-postgres/latest/tokio_postgres/) right now. I might support more in the future, but we'll see.
+Only supports [tokio-postgres](https://docs.rs/tokio-postgres/latest/tokio_postgres/) right now.

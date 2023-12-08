@@ -2,6 +2,10 @@
 name = "mini-query"
 version = "0.1.0"
 edition = "2021"
+description = "A mini ORM derive macro for tokio-postgres."
+repository = "https://github.com/codabrink/mini-query"
+license = "MPL-2.0"
+keywords = ["database", "orm", "async", "sql", "postgres"]
 
 [lib]
 proc-macro = true
