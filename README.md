@@ -4,7 +4,7 @@
 
 A mini query derive macro to generate helper methods to quickly insert / retrieve records.
 
-### Generates the following functions on the struct:
+## Generates the following functions on the struct:
 
 If #[mini_query(primary_key)] is set:
 
@@ -30,13 +30,7 @@ This macro also implements the From\<Row> trait for your struct. Making this pos
   let user: User = client.query_one("SELECT * FROM users WHERE id = $1", &[&1]).await?.into();
 ```
 
-### Who is this for?
-
-- If you're concerned about sqlx's [performance](https://github.com/diesel-rs/metrics/), or are not really a fan of their syntax.
-- [SeaQuery](https://github.com/SeaQL/sea-query) feels like too much of an overkill for your project where you're willing to write some sql.
-- Do you want a simpler way to put your structs into your database and pull them back out again?
-
-### Here's an example for a "users" table
+## Here's an example for a "users" table
 
 ```rust
 use mini_query::MiniQuery;
