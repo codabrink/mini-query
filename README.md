@@ -9,19 +9,19 @@ A mini ORM to quickly find / insert / retrieve records with tokio-postgres.
 If #[mini_query(primary_key)] is set:
 
 ```rust
-MyStruct::get(id: &T) -> Result<Option<T>>
+get(id: &T) -> Result<Option<T>>
 ```
 
 For all fields marked with #[mini_query(find_by)]:
 
 ```rust
-MyStruct::find_by_{x}(client: &impl GenericClient, val: &T) -> Result<Option<T>>
+find_by_{x}(client: &impl GenericClient, val: &T) -> Result<Option<T>>
 ```
 
 For all fields marked with #[mini_query(get_by)]:
 
 ```rust
-MyStruct::get_by_{x}(client: &impl GenericClient, val: &T) -> Result<Vec<T>>
+get_by_{x}(client: &impl GenericClient, val: &T) -> Result<Vec<T>>
 ```
 
 And of course, support for inserting and updating.
@@ -41,7 +41,7 @@ quick_update(&self, client: &impl GenericClient) -> Result<Self>
 This macro also implements the From\<Row> trait for your struct. Making this possible:
 
 ```rust
-  let user: User = client.query_one("SELECT * FROM users WHERE id = $1", &[&1]).await?.into();
+let user: User = client.query_one("SELECT * FROM users WHERE id = $1", &[&1]).await?.into();
 ```
 
 ## Here's an example for a "users" table
@@ -62,7 +62,7 @@ struct User {
   pub raw_password: Option<String>,
   #[mini_query(rename = "password")] // renames field to "password" when saving
   pub enc_password: String,
-  #[mini_query(cast = i16, get_by)]
+  #[mini_query(cast = i16, get_by)] // field is represented by a smallint in postgres
   pub role: UserRole,
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
