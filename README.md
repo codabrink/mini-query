@@ -8,21 +8,35 @@ A mini ORM to quickly find / insert / retrieve records with tokio-postgres.
 
 If #[mini_query(primary_key)] is set:
 
-- `MyStruct::get(id: &T) -> Result<Option<T>>`
+```rust
+MyStruct::get(id: &T) -> Result<Option<T>>
+```
 
 For all fields marked with #[mini_query(find_by)]:
 
-- `MyStruct::find_by_{x}(client: &impl GenericClient, val: &T) -> Result<Option<T>>`
+```rust
+MyStruct::find_by_{x}(client: &impl GenericClient, val: &T) -> Result<Option<T>>
+```
 
 For all fields marked with #[mini_query(get_by)]:
 
-- `MyStruct::get_by_{x}(client: &impl GenericClient, val: &T) -> Result<Vec<T>>`
+```rust
+MyStruct::get_by_{x}(client: &impl GenericClient, val: &T) -> Result<Vec<T>>
+```
 
 And of course, support for inserting and updating.
 
-- `MyStruct::quick_insert(&self, client: &impl GenericClient) -> Result<Self>`
-- `MyStruct::quick_insert_no_return(&self, client: &impl GenericClient) -> Result<()>`
-- `MyStruct::quick_update(&self, client: &impl GenericClient) -> Result<Self>`
+```rust
+quick_insert(&self, client: &impl GenericClient) -> Result<Self>
+```
+
+```rust
+quick_insert_no_return(&self, client: &impl GenericClient) -> Result<()>
+```
+
+```rust
+quick_update(&self, client: &impl GenericClient) -> Result<Self>
+```
 
 This macro also implements the From\<Row> trait for your struct. Making this possible:
 
@@ -33,9 +47,9 @@ This macro also implements the From\<Row> trait for your struct. Making this pos
 ## Here's an example for a "users" table
 
 ```rust
+use chrono::prelude::*;
 use mini_query::MiniQuery;
-use tokio_postgres::{Row, GenericClient};
-use anyhow::Result;
+use tokio_postgres::GenericClient;
 
 #[derive(MiniQuery, Default)]
 #[mini_query(table_name = "users")]
@@ -47,9 +61,9 @@ struct User {
   #[mini_query(skip)]
   pub raw_password: Option<String>,
   #[mini_query(rename = "password")] // renames field to "password" when saving
-  enc_password: String,
-  #[mini_query(cast = i16, get_by)] // this column is represented by a smallint in postgres
-  pub role: UserRole
+  pub enc_password: String,
+  #[mini_query(cast = i16, get_by)]
+  pub role: UserRole,
   pub created_at: DateTime<Utc>,
   pub updated_at: DateTime<Utc>,
 }
@@ -62,7 +76,7 @@ impl User {
   }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 #[repr(i16)]
 enum UserRole {
   #[default]
@@ -82,35 +96,41 @@ impl From<i16> for UserRole {
 #[tokio::main]
 async fn main() -> Result<()> {
   let (client, connection) =
-    tokio_postgres::connect("postgresql://postgres@localhost/mydb-dev", NoTls).await?;
-  tokio::spawn(async move { connection.await });
+        tokio_postgres::connect("postgresql://postgres@localhost/mydb-dev", NoTls).await?;
+    tokio::spawn(async move { connection.await });
 
-  let mut user = User {
-    email: "foo@dog.com".to_owned(),
-    raw_password: "I am bad password".to_owned(),
-    role: UserRole::Admin,
-    ..Default::default()
-  };
-  user.encrypt_password();
+    let mut user = User {
+        email: "foo@dog.com".to_owned(),
+        raw_password: Some("I am bad password".to_owned()),
+        role: UserRole::Admin,
+        ..Default::default()
+    };
+    user.encrypt_password();
 
-  // fn is prefixed with "quick_" to avoid naming collisions, in case you wish to write a validation wrapper.
-  user.quick_insert(&client).await?;
+    // fn is prefixed with "quick_" to avoid naming collisions, in case you wish to write a validation wrapper.
+    user.quick_insert(&client).await?;
 
-  // find user by email
-  let same_user = User::find_by_email(&client, "foo@dog.com")?;
-  assert_eq!(user.email, same_user.email);
+    // find user by email
+    let same_user = User::find_by_email(&client, "foo@dog.com").await?.unwrap();
+    assert_eq!(user.email, same_user.email);
 
-  // get all the admins
-  let admins = User::get_by_role(&client, &UserRole::Admin);
-  assert_eq!(vec![same_user], admins);
+    // get all the admins
+    let admin = User::get_by_role(&client, &UserRole::Admin)
+        .await?
+        .pop()
+        .unwrap();
+    assert_eq!(same_user.email, admin.email);
 
-  // get user by id and update
-  let mut user = User::get(&client, &same_user.id);
-  user.email = "bar@dog.com".to_owned();
-  user.quick_update(&client).await?;
+    // get user by id and update
+    let mut user = User::get(&client, &same_user.id).await?.unwrap();
+    user.email = "bar@dog.com".to_owned();
+    user.quick_update(&client).await?;
 
-  // assert it saved
-  assert_eq!(&User::get(&client, &user.id).email, "bar@dog.com");
+    // assert it saved
+    assert_eq!(
+        &User::get(&client, &user.id).await?.unwrap().email,
+        "bar@dog.com"
+    );
 
   Ok(())
 }

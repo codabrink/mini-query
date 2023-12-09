@@ -4,8 +4,8 @@ mod attrs;
 use attrs::{ContainerAttributes, FieldAttribute, ParseAttributes};
 use core::panic;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Error, Fields, FieldsNamed};
+use quote::{format_ident, quote, ToTokens};
+use syn::{parse_macro_input, Data, DataStruct, DeriveInput, Error, Fields, FieldsNamed, Type};
 
 #[proc_macro_derive(MiniQuery, attributes(mini_query))]
 pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -60,7 +60,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
       // is the field in question being casted when sent to / from database?
       // denoted with #[mini_query(cast = i16)]
-      if let Some(cast) = field_attributes.cast {
+      if let Some(cast) = field_attributes.cast.clone() {
         from_impl.push(TokenStream::from(quote! { #field: row.get::<'a, &str, #cast>(#name).into() }));
         field_tokens.push(TokenStream::from(quote! { #field as #cast }));
       } else {
@@ -76,27 +76,41 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
       let query = format!("SELECT * FROM {table_name} WHERE {name} = $1");
       let get_by_fn_name = format_ident!("get_by_{}", field);
 
+      let mut cast = TokenStream::new();
+      if let Some(ty) = field_attributes.cast {
+        cast.extend(TokenStream::from(quote! { as #ty }));
+      }
+
+      // Make things simpler for string field types
+      // Allow the passing of anythign that implements AsRef<str>
+      let (field_type, field_fetch) = coalesce_types(ty);
+
       token_stream.extend(TokenStream::from(quote! {
         impl #struct_name #type_generics #where_clause {
-          pub async fn #get_by_fn_name(client: &impl GenericClient, field: &#ty) -> anyhow::Result<Vec<Self>> {
-            let recs = client.query(#query, &[&field]).await?.iter().map(Self::from).collect();
+          pub async fn #get_by_fn_name(client: &impl GenericClient, field: #field_type) -> anyhow::Result<Vec<Self>> {
+            #field_fetch
+            let recs = client.query(#query, &[&(*field #cast)]).await?.iter().map(Self::from).collect();
             Ok(recs)
-
           }
         }
       }));
     }
 
-    // build out the find_by_x functions
-    // denoted with #[mini_query(find_by)]
+    // Build out the find_by_x functions
+    // Denoted with #[mini_query(find_by)]
     if field_attributes.find_by {
       let field = field.clone();
       let query = format!("SELECT * FROM {table_name} WHERE {name} = $1");
       let find_by_fn_name = format_ident!("find_by_{}", field);
 
+      // Make things simpler for string field types
+      // Allow the passing of anythign that implements AsRef<str>
+      let (field_type, field_fetch) = coalesce_types(&ty);
+
       token_stream.extend(TokenStream::from(quote! {
         impl #struct_name #type_generics #where_clause {
-          pub async fn #find_by_fn_name(client: &impl GenericClient, field: &#ty) -> anyhow::Result<Option<Self>> {
+          pub async fn #find_by_fn_name(client: &impl GenericClient, field: #field_type) -> anyhow::Result<Option<Self>> {
+            #field_fetch
             let rec = client.query_opt(#query, &[&field]).await?.map(Self::from);
             Ok(rec)
           }
@@ -195,4 +209,15 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   }
 
   token_stream.into()
+}
+
+fn coalesce_types(ty: &Type) -> (TokenStream, TokenStream) {
+  let rasterized_type = ty.clone().into_token_stream().to_string();
+  match rasterized_type.as_ref() {
+    "String" => (
+      TokenStream::from(quote! { impl AsRef<str> }),
+      TokenStream::from(quote! { let field = field.as_ref(); }),
+    ),
+    _ => (TokenStream::from(quote! { &#ty }), TokenStream::new()),
+  }
 }
