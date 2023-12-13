@@ -1,17 +1,13 @@
-[package]
+[workspace]
+resolver = "2"
+members = ["mini-query", "mini-query-derive"]
+
+[workspace.package]
 name = "mini-query"
-version = "0.1.4"
-edition = "2021"
-description = "A mini ORM to quickly find / insert / retrieve records with tokio-postgres."
-repository = "https://github.com/codabrink/mini-query"
-license = "MPL-2.0"
-keywords = ["database", "orm", "async", "sql", "postgres"]
+version = "0.1.5"
 
-[lib]
-proc-macro = true
-
-[dependencies]
-syn = "2"
-quote = "1"
-proc-macro2 = "1"
+[workspace.dependencies]
 convert_case = "0.6"
+syn = "2"
+proc-macro2 = "1"
+quote = "1"

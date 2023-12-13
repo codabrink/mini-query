@@ -150,7 +150,7 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
       impl #struct_name #type_generics #where_clause {
         #[doc=concat!("Generated array of field names for `", stringify!(#struct_name #type_generics), "`.")]
         const FIELD_NAMES: [&'static str; #len] = [#(#field_names),*];
-        pub const TABLE_NAME: &'static str = #table_name;
+        pub const __TABLE_NAME__: &'static str = #table_name;
 
         pub async fn all(client: &impl GenericClient) -> anyhow::Result<Vec<Self>> {
           let recs = client.query(#all_query, &[]).await?.iter().map(Self::from).collect();
@@ -192,6 +192,8 @@ pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let ts = TokenStream::from(quote! {
       impl #struct_name #type_generics #where_clause {
+        pub const __PRIMARY_KEY__: &'static str = stringify!(#ident);
+
         pub async fn get(client: &impl GenericClient, id: &#ty) -> anyhow::Result<Option<Self>> {
           let rec = client.query_opt(#query, &[&id]).await?.map(Self::from);
 

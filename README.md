@@ -93,6 +93,17 @@ impl From<i16> for UserRole {
   }
 }
 
+#[derive(MiniQuery, Default)]
+#[mini_query(table_name = "posts")]
+struct Post {
+  #[mini_query(primary_key)]
+  pub user_id: i32,
+  pub content: String
+}
+impl Post {
+  belongs_to!(User, user, user_id);
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
   let (client, connection) =
@@ -107,7 +118,8 @@ async fn main() -> Result<()> {
     };
     user.encrypt_password();
 
-    // fn is prefixed with "quick_" to avoid naming collisions, in case you wish to write a validation wrapper.
+    // fn is prefixed with "quick_" to avoid naming collisions',
+    // in case you wish to write your own validation wrapper.
     user.quick_insert(&client).await?;
 
     // find user by email

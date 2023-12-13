@@ -1,0 +1,17 @@
+[package]
+version.workspace = true
+name = "mini-query-derive"
+edition = "2021"
+description = "A mini ORM to quickly find / insert / retrieve records with tokio-postgres."
+repository = "https://github.com/codabrink/mini-query"
+license = "MPL-2.0"
+keywords = ["macro", "proc_macro"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn.workspace = true
+quote = "1"
+proc-macro2.workspace = true
+convert_case.workspace = true
