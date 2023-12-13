@@ -4,7 +4,7 @@ members = ["mini-query", "mini-query-derive"]
 
 [workspace.package]
 name = "mini-query"
-version = "0.1.5"
+version = "0.1.6"
 
 [workspace.dependencies]
 convert_case = "0.6"

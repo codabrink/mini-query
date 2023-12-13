@@ -4,6 +4,7 @@ version.workspace = true
 edition = "2021"
 description = "A mini ORM to quickly find / insert / retrieve records with tokio-postgres."
 license = "MPL-2.0"
+readme = "../README.md"
 keywords = ["database", "async", "orm", "postgres", "sql"]
 
 [dependencies]
